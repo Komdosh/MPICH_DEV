@@ -64,13 +64,14 @@ initMPICHConfigureOpts() {
        izemConfig="--enable-izem=queue \
         --with-zm-prefix=embedded"
        ch4mt="--enable-ch4-mt=$1"
-      ;;
+      
   esac
   
   removeOldInstallation "$prefix"
   
   MPICH_CONFIGURE_OPTS="CFLAGS=\"$MPICH_CONFIGURE_CFLAGS\" \
 CXXFLAGS=\"$MPICH_CONFIGURE_CXXFLAGS\" \
+--silent \
 --prefix=$prefix \
 --with-device=ch4:ofi \
 --with-libfabric=/usr/lib64 \
@@ -88,6 +89,7 @@ $ch4mt \
 
 makeAndInstall() {
 	echo $LOG_PREFIX "Make and install MPICH sources"
+	make clean;
 	make && make install
 }
 
@@ -135,8 +137,17 @@ installation()  {
   
   case $1 in
     global|handoff|trylock)
-      eval "./configure $MPICH_CONFIGURE_OPTS"
-      makeAndInstall
+      #eval "./configure $MPICH_CONFIGURE_OPTS"
+    
+      read -p "Do you want to make and install? [y/N]: " makeInstall
+
+      if test "$makeInstall" = "y" || test "$makeInstall" = "Y"; then
+        echo $LOG_PREFIX
+        eval "date"
+        makeAndInstall
+        echo $LOG_PREFIX
+        eval "date"
+      fi
       ;;
   esac
   
