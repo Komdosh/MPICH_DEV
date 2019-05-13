@@ -9,19 +9,22 @@
 ################################
 
 LOG_PREFIX="[InstallMPICH]:"
-INSTALLATION_PATH_PREFIX="/opt/mpich/"
-MPICH_DIR_NAME="mpich-3.3"
 
+MPICH_DIR_NAME="mpich"
+INSTALLATION_PATH_PREFIX="/opt/$MPICH_DIR_NAME/"
+MPICH_VERSION="3.3"
+MPICH_NAME="mpich-$MPICH_VERSION"
 
 HELP="Usage: installMpich.sh [Build Option] [Ad Options]
 Build MPICH option:
-  -g - global critical sections
+	-g - global critical sections
 	-t - algorithm for per-vni critical section - trylock
 	-f - algorithm for per-vni critical section - handoff
-	-d - only download and unpack mpich-3.3
+	-d - only download and unpack $MPICH_NAME
 	
 Additional Options:
-	-s - skip manual input [auto launching of: remove previous build and configure dirs, make && make install] 
+	-s - skip manual input [auto launching of: remove previous build,
+	                        configure dirs, make && make install] 
 	-r - replace sources from dev directory
 	-h - show this message"
 
@@ -34,52 +37,62 @@ MPICH_CONFIGURE_CXXFLAGS="$DEBUG_FLAGS"
 ################################
 
 restoreMPICH()  {
-  removeOldInstallation "$MPICH_DIR_NAME"
+  removeOldInstallation "$MPICH_NAME"
+  
+  downloadAndUnpackMPICH
 }
 
 downloadAndUnpackMPICH()  {
-		if test ! -f "$MPICH_DIR_NAME.tar.gz"; then
+    local tarExtension="tar.gz"
+		if test ! -f "$MPICH_NAME.$tarExtension"; then
 		  echo $LOG_PREFIX "Download mpich sources..."
-		  wget http://www.mpich.org/static/downloads/3.3/mpich-3.3.tar.gz
+		  eval "wget http://www.mpich.org/static/downloads/$MPICH_VERSION/$MPICH_NAME.$tarExtension"
 		else 
 		  echo $LOG_PREFIX "Sources already downloaded"
 		fi
-		echo $LOG_PREFIX "Unpack sources to $MPICH_DIR_NAME"
-		tar -xzf mpich-3.3.tar.gz
+		echo "$LOG_PREFIX Unpack sources to $MPICH_NAME"
+		eval "tar -xzf $MPICH_NAME.$tarExtension"
 }
 
-getMPICHSources() {
-	if test ! -d "$MPICH_DIR_NAME"; then
-		echo $LOG_PREFIX "There is no installed MPICH. Download and unpacking.."
+getMPICHSources() { 
+  local reinstallMPICH=""
+  
+  if test ! -d "$MPICH_NAME"; then
+	  echo $LOG_PREFIX "There is no installed MPICH. Download and unpack it.."
     downloadAndUnpackMPICH
-	else
-	  echo $LOG_PREFIX "MPICH already downloaded and unpacked"
+  else
+    echo $LOG_PREFIX "MPICH already downloaded and unpacked"
 	  
-	  local reinstallMPICH
 	  if test $auto = false; then
-      read -p "Do you want to delete current mpich directory, download it (if not downloaded) and unpack it again? [y/N]: " reinstallMPICH
+      read -p "Do you want to delete current mpich directory, download and unpack it again? [y/N]: " reinstallMPICH
     else
-      reinstallMPICH = "y"
+      reinstallMPICH="y"
     fi
     
     if test "$reinstallMPICH" != "y" && test "$reinstallMPICH" != "Y"; then
       return 0
     fi
-     
-    eval "rm -rf "$MPICH_DIR_NAME""
-   
-    downloadAndUnpackMPICH
+    
+    restoreMPICH
+	fi
+	
+	if test $replaceSources = true; then
+	  echo $LOG_PREFIX "replace sources from dev directory"
+	  
+    eval "cd $MPICH_NAME"
+	  eval "cp -a ../../dev/. ./"
+	  eval "cd ../"
 	fi
 }
 
 createMPICHDir() {
-	if test ! -d "mpich"; then
+	if test ! -d "$MPICH_DIR_NAME"; then
 		echo $LOG_PREFIX "Create MPICH directory"
 		mkdir mpich
 	else
 		echo $LOG_PREFIX "MPICH directory already exists"
 	fi
-	cd mpich
+	eval "cd $MPICH_DIR_NAME"
 }
 
 initMPICHConfigureOpts() {
@@ -101,6 +114,7 @@ initMPICHConfigureOpts() {
        ch4mt="--enable-ch4-mt=$1"
       
   esac
+  echo $LOG_PREFIX "Configure MPICH with $threadCS CS to $prefix"
   
   removeOldInstallation "$prefix"
   
@@ -138,7 +152,7 @@ removeOldInstallation() {
   if test $auto = false; then
     read -p "Do you want to remove this directory and continue installation? [y/N]: " removeAndContinue
   else
-    removeAndContinue = "y"
+    removeAndContinue="y"
   fi
   
   if test "$removeAndContinue" != "y" && test "$removeAndContinue" != "Y"; then
@@ -154,19 +168,16 @@ installation()  {
   createMPICHDir
   getMPICHSources
   
-  cd mpich-3.3
+  eval "cd $MPICH_NAME"
   
   case $1 in 
     global)
-     echo $LOG_PREFIX "Configure MPICH with global CS to /opt/mpich/global"
       initMPICHConfigureOpts "global"
       ;;
     handoff)
-      echo $LOG_PREFIX "Configure MPICH with per-vni CS to /opt/mpich/per-vni-handoff"
       initMPICHConfigureOpts "handoff"
       ;;
     trylock)
-      echo $LOG_PREFIX "Configure MPICH with per-vni CS to /opt/mpich/per-vni-trylock"
       initMPICHConfigureOpts "trylock"
       ;;
     downloadUnpack)
@@ -203,26 +214,26 @@ installation()  {
 ## Entry point
 ################################
 
+if test $# = 0; then
+	echo "No args passed to programm, you should pass at least one:
+	$HELP"
+	exit 1
+fi
+
 #skip user manual input:
 # - auto make and install
 # - auto remove previous build directory
 auto=false 
 
-#replace mpich source files from @dev directory
+#replace mpich source files from ./dev directory
 replaceSources=false
-
-if test $# = 0; then
-	echo "No args passed to programm, you should pass at least one of those:
-	$HELP"
-	exit 1
-fi
 
 while getopts ":sr" opt; do
   case $opt in
-    s)
+    s) #skip user manual input
       auto=true
       ;;
-    r)
+    r) #replace mpich source files from ./dev directory
       replaceSources=true
       ;;
   esac
