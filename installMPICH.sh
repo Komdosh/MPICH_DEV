@@ -198,10 +198,10 @@ installation()  {
       fi
   
       if test $auto = true || test "$makeInstall" = "y" || test "$makeInstall" = "Y"; then
-        echo $LOG_PREFIX
+        echo $LOG_PREFIX 
         eval "date"
         makeAndInstall
-        echo $LOG_PREFIX
+        echo $LOG_PREFIX 
         eval "date"
       fi
       ;;
@@ -213,6 +213,7 @@ installation()  {
 ################################
 ## Entry point
 ################################
+
 
 if test $# = 0; then
 	echo "No args passed to programm, you should pass at least one:
