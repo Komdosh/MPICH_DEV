@@ -18,8 +18,7 @@ MPICH_NAME="mpich-$MPICH_VERSION"
 HELP="Usage: installMpich.sh [Build Option] [Ad Options]
 Build MPICH option:
 	-g - global critical sections
-	-t - algorithm for per-vni critical section - trylock
-	-f - algorithm for per-vni critical section - handoff
+	-p [trylock, handoff] - per-vni critical section
 	-d - only download and unpack $MPICH_NAME
 	
 Additional Options:
@@ -229,7 +228,7 @@ auto=false
 #replace mpich source files from ./dev directory
 replaceSources=false
 
-while getopts ":sr" opt; do
+while getopts ":srp:" opt; do
   case $opt in
     s) #skip user manual input
       auto=true
@@ -237,21 +236,27 @@ while getopts ":sr" opt; do
     r) #replace mpich source files from ./dev directory
       replaceSources=true
       ;;
+    p) #check per-vni
+		  perVniType=${OPTARG}
+      if test "$perVniType" != "trylock" && test "$perVniType" != "handoff"; then
+			  echo $LOG_PREFIX "Wrong per-vni type, trylock or handoff only!"
+			  exit 1
+			fi
+			;;
   esac
 done
 
 OPTIND=1
 
-while getopts ":gtfdh" opt; do
+while getopts ":gp:dh" opt; do
 	case $opt in
 		g) #global critical section
 			installation "global"
 			;;
-		t) #per-vni trtylock
-			installation "trylock"
-			;;
-		f) #per-vni handoff
-			installation "handoff"
+		p) #per-vni
+		  perVniType=${OPTARG}
+		  echo "$LOG_PREFIX per-vni type is $perVniType"
+			installation "$perVniType"
 			;;
 		d) #download and unpack only
 			echo $LOG_PREFIX "Download and unpacking mpich"

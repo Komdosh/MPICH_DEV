@@ -12,6 +12,7 @@
 #define CH4_RECV_H_INCLUDED
 
 #include "ch4_impl.h"
+#include "rdtsc.h"
 
 #undef FUNCNAME
 #define FUNCNAME MPIDI_recv_unsafe
@@ -29,8 +30,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_recv_unsafe(void *buf,
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_RECV_UNSAFE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_RECV_UNSAFE);
-printf("ETU WAS HERE!");
-printf("*F#F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F");
+    
+    uint64_t start;
+printf("ETU WAS HERE!\n");
+printf("*F#F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F\n");
+    start = __rdtsc();
 #ifdef MPIDI_CH4_DIRECT_NETMOD
     mpi_errno =
         MPIDI_NM_mpi_recv(buf, count, datatype, rank, tag, comm, context_offset, av, status,
@@ -80,7 +84,10 @@ printf("*F#F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F");
         }
     }
 #endif
-
+    printf("ETU WAS HERE!\n");
+    printf("*F#F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F\n");
+    printf("YEAH: %ld\n", __rdtsc()-start);
+    
     if (mpi_errno != MPI_SUCCESS) {
         MPIR_ERR_POP(mpi_errno);
     }
