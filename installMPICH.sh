@@ -28,8 +28,6 @@ Additional Options:
 	-h - show this message"
 
 DEBUG_FLAGS="-g3 -gdwarf-2"
-MPICH_CONFIGURE_CFLAGS="$DEBUG_FLAGS"
-MPICH_CONFIGURE_CXXFLAGS="$DEBUG_FLAGS"
 
 ################################
 ## Functions
@@ -76,7 +74,7 @@ getMPICHSources() {
 	fi
 	
 	if test $replaceSources = true; then
-	  echo $LOG_PREFIX "replace sources from dev directory"
+	  echo $LOG_PREFIX "Replace sources from dev directory"
 	  
     eval "cd $MPICH_NAME"
 	  eval "cp -a ../../dev/. ./"
@@ -117,18 +115,35 @@ initMPICHConfigureOpts() {
   
   removeOldInstallation "$prefix"
   
-  MPICH_CONFIGURE_OPTS="CFLAGS=\"$MPICH_CONFIGURE_CFLAGS\" \
-CXXFLAGS=\"$MPICH_CONFIGURE_CXXFLAGS\" \
+  if test $optimizedBuild; then
+    CFlags="CFLAGS=-O3"
+    CXXFLAGS="CXXFLAGS=-O3"
+    performanceKeys="--enable-fast=O3,ndebug \
+--disable-error-checking \
+--without-timing \
+--without-mpit-pvars \
+--enable-g=none \
+"
+  else
+    CFlags="CFLAGS=\"$DEBUG_FLAGS\""
+    CXXFlags="CXXFLAGS=\"$DEBUG_FLAGS\""
+    performanceKeys="--enable-fast=O0 \
+    --enable-timing=all \
+    --enable-mutex-timing \
+    --enable-g=all \
+    "
+  fi
+  
+  MPICH_CONFIGURE_OPTS="$CFlags \
+$CXXFlags \
 --silent \
 --prefix=$prefix \
+--with-hwloc=/opt/hwloc \
 --with-device=ch4:ofi \
 --with-libfabric=/usr/lib64 \
 --enable-threads=multiple \
 --enable-thread-cs=$threadCS \
---enable-mutex-timing \
---enable-g=all \
---enable-fast=O0 \
---enable-timing=all \
+$performanceKeys \
 $izemConfig \
 $ch4mt \
 --disable-fortran"
@@ -138,7 +153,7 @@ $ch4mt \
 makeAndInstall() {
 	echo $LOG_PREFIX "Make and install MPICH sources"
 	make clean;
-	make && make install
+	make -j 7 && make install
 }
 
 removeOldInstallation() {
@@ -193,7 +208,7 @@ installation()  {
       if test $auto = false; then
         read -p "Do you want to make and install? [y/N]: " makeInstall
       else
-        removeAndContinue = "y"
+        makeInstall="y"
       fi
   
       if test $auto = true || test "$makeInstall" = "y" || test "$makeInstall" = "Y"; then
@@ -207,6 +222,37 @@ installation()  {
   esac
   
   echo $LOG_PREFIX "MPICH installation finished!"
+}
+
+installHwloc() {
+      if test -d "/opt/hwloc"; then
+       return 0
+      fi
+
+		  gitPath=$(command -v git)
+		  if test "$gitPath" = ""; then 
+		    sudo apt-get install git
+		  fi
+		  
+		  if test ! -d "hwloc"; then
+		    git clone https://github.com/open-mpi/hwloc.git
+		  fi
+		  
+		  cd hwloc
+		  
+		  autoconfPath=$(command -v autoconf)
+		  if test $autoconfPath = ""; then 
+		    sudo apt-get install autogen
+		    sudo apt-get install autoconf
+		    sudo apt-get install xorg-dev
+		  fi
+		  sudo apt-get install libtool
+		  ./autogen.sh
+		  ./configure --prefix=/opt/hwloc
+		  make && make install
+		  make
+		  make install
+		  cd ../
 }
 
 ################################
@@ -228,7 +274,10 @@ auto=false
 #replace mpich source files from ./dev directory
 replaceSources=false
 
-while getopts ":srp:" opt; do
+#optimized build without debug info
+optimizedBuild=false
+
+while getopts ":srp:o" opt; do
   case $opt in
     s) #skip user manual input
       auto=true
@@ -243,10 +292,15 @@ while getopts ":srp:" opt; do
 			  exit 1
 			fi
 			;;
+		o) #optimization of installation
+		  optimizedBuild=true
+		  ;;
   esac
 done
 
 OPTIND=1
+
+installHwloc
 
 while getopts ":gp:dh" opt; do
 	case $opt in

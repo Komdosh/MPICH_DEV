@@ -31,10 +31,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_recv_unsafe(void *buf,
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_RECV_UNSAFE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_RECV_UNSAFE);
     
-    uint64_t start;
-printf("ETU WAS HERE!\n");
-printf("*F#F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F\n");
-    start = __rdtsc();
+    uint64_t start = rdtsc();
 #ifdef MPIDI_CH4_DIRECT_NETMOD
     mpi_errno =
         MPIDI_NM_mpi_recv(buf, count, datatype, rank, tag, comm, context_offset, av, status,
@@ -84,9 +81,8 @@ printf("*F#F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F\n");
         }
     }
 #endif
-    printf("ETU WAS HERE!\n");
-    printf("*F#F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F*F\n");
-    printf("YEAH: %ld\n", __rdtsc()-start);
+    printf("==================TIMING===============");
+    printf("Time: %llu\n", rdtsc()-start);
     
     if (mpi_errno != MPI_SUCCESS) {
         MPIR_ERR_POP(mpi_errno);
