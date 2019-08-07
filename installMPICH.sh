@@ -29,6 +29,18 @@ Additional Options:
 
 DEBUG_FLAGS="-g3 -gdwarf-2"
 
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+  INSTALL="apt-get"
+elif [[ "$OSTYPE"=="darwin"* ]]; then
+  INSTALL="brew"
+else
+  echo "Only Linux or MacOS is allowed for INSTALL"
+fi
+
+if [[ "$OSTYPE"=="darwin"* ]]; then
+  echo "You should install gcc by own"
+  export CC=/usr/local/Cellar/gcc/9.1.0/bin/gcc-9
+fi
 ################################
 ## Functions
 ################################
@@ -48,7 +60,7 @@ downloadAndUnpackMPICH()  {
 		  echo $LOG_PREFIX "Sources already downloaded"
 		fi
 		echo "$LOG_PREFIX Unpack sources to $MPICH_NAME"
-		eval "tar -xzf $MPICH_NAME.$tarExtension"
+    eval "tar -xzf $MPICH_NAME.$tarExtension"
 }
 
 getMPICHSources() { 
@@ -97,7 +109,7 @@ initMPICHConfigureOpts() {
   local threadCS=""
   local izemConfig="" #izem necessary only for per-vni CS
   local ch4mt="" #multithread algorithm necessary only for per-vni CS
-  
+
   case $1 in 
     global)
       prefix=$prefix"global"
@@ -134,13 +146,19 @@ initMPICHConfigureOpts() {
     "
   fi
   
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+        LIBFABRIC="/usr/lib64"
+elif [[ "$OSTYPE"=="darwin"* ]]; then
+        LIBFABRIC="/usr/local/Cellar/libfabric/1.6.2"
+fi
+
   MPICH_CONFIGURE_OPTS="$CFlags \
 $CXXFlags \
 --silent \
 --prefix=$prefix \
 --with-hwloc=/opt/hwloc \
 --with-device=ch4:ofi \
---with-libfabric=/usr/lib64 \
+--with-libfabric=$LIBFABRIC \
 --enable-threads=multiple \
 --enable-thread-cs=$threadCS \
 $performanceKeys \
@@ -231,7 +249,7 @@ installHwloc() {
 
 		  gitPath=$(command -v git)
 		  if test "$gitPath" = ""; then 
-		    sudo apt-get install git
+		    eval "$INSTALL install git"
 		  fi
 		  
 		  if test ! -d "hwloc"; then
@@ -241,12 +259,14 @@ installHwloc() {
 		  cd hwloc
 		  
 		  autoconfPath=$(command -v autoconf)
-		  if test $autoconfPath = ""; then 
-		    sudo apt-get install autogen
-		    sudo apt-get install autoconf
-		    sudo apt-get install xorg-dev
+      if test $autoconfPath = ""; then 
+        eval "$INSTALL install autogen"
+        eval "$INSTALL install autoconf"
+        if [[ "$OSTYPE"!="darwin"* ]]; then
+          eval "$INSTALL install xorg-dev"
+        fi
 		  fi
-		  sudo apt-get install libtool
+		  eval "$INSTALL install libtool"
 		  ./autogen.sh
 		  ./configure --prefix=/opt/hwloc
 		  make && make install
