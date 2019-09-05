@@ -14,12 +14,16 @@ MPICH_DIR_NAME="mpich"
 INSTALLATION_PATH_PREFIX="/opt/$MPICH_DIR_NAME/"
 MPICH_VERSION="3.3"
 MPICH_NAME="mpich-$MPICH_VERSION"
+MPICH_GITHUB_NAME="mpich"
+
+
+CURRENT_MPICH_NAME=$MPICH_NAME
 
 HELP="Usage: installMpich.sh [Build Option] [Ad Options]
 Build MPICH option:
 	-g - global critical sections
 	-p [trylock, handoff] - per-vni critical section
-	-d - only download and unpack $MPICH_NAME
+	-d - only download and unpack $CURRENT_MPICH_NAME
 	
 Additional Options:
 	-s - skip manual input [auto launching of: remove previous build,
@@ -38,7 +42,7 @@ else
 fi
 
 if [[ "$OSTYPE"=="darwin"* ]]; then
-  echo "You should install gcc by own"
+  echo "You should install gcc by your own"
   export CC=/usr/local/Cellar/gcc/9.1.0/bin/gcc-9
 fi
 ################################
@@ -46,27 +50,73 @@ fi
 ################################
 
 restoreMPICH()  {
-  removeOldInstallation "$MPICH_NAME"
+  removeOldInstallation "$CURRENT_MPICH_NAME"
   
   downloadAndUnpackMPICH
 }
 
 downloadAndUnpackMPICH()  {
-    local tarExtension="tar.gz"
-		if test ! -f "$MPICH_NAME.$tarExtension"; then
-		  echo $LOG_PREFIX "Download mpich sources..."
-		  eval "wget http://www.mpich.org/static/downloads/$MPICH_VERSION/$MPICH_NAME.$tarExtension"
-		else 
-		  echo $LOG_PREFIX "Sources already downloaded"
-		fi
-		echo "$LOG_PREFIX Unpack sources to $MPICH_NAME"
-    eval "tar -xzf $MPICH_NAME.$tarExtension"
+    if test $github = false; then
+      local tarExtension="tar.gz"
+      if test ! -f "$MPICH_NAME.$tarExtension";  then
+        echo $LOG_PREFIX "Download mpich sources from http://www.mpich.org ..."
+        eval "wget http://www.mpich.org/static/downloads/$MPICH_VERSION/$MPICH_NAME.$tarExtension"
+      else 
+        echo $LOG_PREFIX "Sources already downloaded"
+      fi
+      echo "$LOG_PREFIX Unpack sources to $MPICH_NAME"
+      eval "tar -xzf $MPICH_NAME.$tarExtension"
+    else  
+      cloneMpichGithub
+    fi
 }
+
+cloneMpichGithub() {
+    if test ! -f "$MPICH_GITHUB_NAME/src/README";  then
+      echo $LOG_PREFIX "Clone mpich sources from github ..."
+      eval "git clone git@github.com:pmodels/mpich.git"
+    else 
+      echo $LOG_PREFIX "Repo mpich already downloaded"
+    fi
+    if test ! -f "$MPICH_GITHUB_NAME/src/hwloc/README";  then
+      eval "cd $MPICH_GITHUB_NAME/src"
+      echo $LOG_PREFIX "Clone hwloc sources from github ..."
+      eval "git clone git@github.com:pmodels/hwloc.git"
+      eval "cd ../../"
+    else 
+      echo $LOG_PREFIX "Repo hwloc already downloaded"
+    fi
+    if test ! -f "$MPICH_GITHUB_NAME/src/izem/README";  then
+      eval "cd $MPICH_GITHUB_NAME/src"
+      echo $LOG_PREFIX "Clone izem sources from github ..."
+      eval "git clone git@github.com:pmodels/izem.git"
+      eval "cd ../../"
+    else 
+      echo $LOG_PREFIX "Repo izem already downloaded"
+    fi
+    if test ! -f "$MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ucx/ucx/README";  then
+      eval "cd $MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ucx"
+      echo $LOG_PREFIX "Clone ucx sources from github ..."
+      eval "git clone git@github.com:pmodels/ucx.git"
+      eval "cd ../../../../../../"
+    else 
+      echo $LOG_PREFIX "Repo ucx already downloaded"
+    fi
+    if test ! -f "$MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ofi/libfabric/README";  then
+      eval "cd $MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ofi"
+      echo $LOG_PREFIX "Clone libfabric sources from github ..."
+      eval "git clone git@github.com:pmodels/libfabric.git"
+      eval "cd ../../../../../../"
+    else 
+      echo $LOG_PREFIX "Repo libfabric already downloaded"
+    fi
+}
+
 
 getMPICHSources() { 
   local reinstallMPICH=""
   
-  if test ! -d "$MPICH_NAME"; then
+  if test ! -d "$CURRENT_MPICH_NAME"; then
 	  echo $LOG_PREFIX "There is no installed MPICH. Download and unpack it.."
     downloadAndUnpackMPICH
   else
@@ -88,7 +138,7 @@ getMPICHSources() {
 	if test $replaceSources = true; then
 	  echo $LOG_PREFIX "Replace sources from dev directory"
 	  
-    eval "cd $MPICH_NAME"
+    eval "cd $CURRENT_MPICH_NAME"
 	  eval "cp -a ../../dev/. ./"
 	  eval "cd ../"
 	fi
@@ -105,6 +155,10 @@ createMPICHDir() {
 }
 
 initMPICHConfigureOpts() {
+  if test $github = true; then
+    git fetch
+    sh ./autogen.sh
+  fi
   local prefix=$INSTALLATION_PATH_PREFIX
   local threadCS=""
   local izemConfig="" #izem necessary only for per-vni CS
@@ -165,7 +219,7 @@ $performanceKeys \
 $izemConfig \
 $ch4mt \
 --disable-fortran"
- echo "Configure MPICH: $MPICH_CONFIGURE_OPTS"
+ echo $LOG_PREFIX "Configure MPICH: $MPICH_CONFIGURE_OPTS"
 }
 
 makeAndInstall() {
@@ -200,7 +254,7 @@ installation()  {
   createMPICHDir
   getMPICHSources
   
-  eval "cd $MPICH_NAME"
+  eval "cd $CURRENT_MPICH_NAME"
   
   case $1 in 
     global)
@@ -297,13 +351,28 @@ replaceSources=false
 #optimized build without debug info
 optimizedBuild=false
 
-while getopts ":srp:o" opt; do
+#get sources from github repo
+github=false
+
+
+while getopts ":srp:fo" opt; do
   case $opt in
     s) #skip user manual input
       auto=true
       ;;
     r) #replace mpich source files from ./dev directory
       replaceSources=true
+      ;;
+    f) #set mpich source to github
+      branch=${OPTARG}
+      github=true
+      CURRENT_MPICH_NAME=$MPICH_GITHUB_NAME
+      if test -z "$branch"; then
+			  echo $LOG_PREFIX "Github branch set to master"
+        branch="master"
+      else
+        echo $LOG_PREFIX "Github branch set to $branch"
+			fi
       ;;
     p) #check per-vni
 		  perVniType=${OPTARG}
@@ -349,10 +418,3 @@ while getopts ":gp:dh" opt; do
 done
 
 exit 0
-
-
-
-
-
-
-
