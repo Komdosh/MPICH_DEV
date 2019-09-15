@@ -1,0 +1,213 @@
+#! /bin/sh
+#
+MPIEXEC=@MPIEXEC@
+MPIEXECN=@MPIEXEC_N@
+# Set a default number of processors.  Increase this to a "typical" size 
+# for your application when using this script to compare approaches for
+# halo exchanges.
+NP=4
+VERBOSE=no
+for arg in $@ ; do
+    case $arg in 
+    -n=*)
+    NP=`echo X$arg | sed -e 's/.*=//'`
+    ;;
+    -v|-verbose)
+    VERBOSE=yes
+    ;;
+    *)
+    echo "Unrecognized argument $arg"
+    echo "runhalo [ -n=p ]"
+    echo "  -n=p  - Use this many MPI processes when running the tests"
+    exit 1
+    ;;
+    esac
+done
+
+fatalError=no
+ourmpirun=$MPIEXEC
+if [ -z "$MPIEXEC" ] ; then
+    echo "MPIEXEC command not specified.  Set the MPIEXEC variable in runhalo and try again"
+    fatalError=yes
+    ourmpirun="mpiexec or mpirun"
+fi
+
+if [ -z "$MPIEXECN" ] ; then
+    echo "The number of processes argument for $ourmpirun was not set.  Set the MPIEXECN variable in runhalo and try again"
+    fatalError=yes
+fi
+
+if [ ! -x mpptest ] ; then
+    echo "Build mpptest first"
+    fatalError=yes
+fi
+if [ ! -x winoverhead ] ; then
+    echo "Build winoverhead first"
+    fatalError=yes
+fi
+if [ ! -x goptest ] ; then
+    echo "Build goptest first"
+    fatalError=yes
+fi
+
+if [ "$fatalError" != no ] ; then
+    echo "Aborting runhalo due to fatal errors"
+    exit 1
+fi
+
+# Run the overhead test
+rm -f winoverhead$NP.txt
+$MPIEXEC $MPIEXECN $NP ./winoverhead > winoverhead$NP.txt
+if [ -s "winoverhead$NP.txt" ] ; then
+    gfiles="$gfiles winoverhead$NP.txt"
+fi
+rm -f barrier$NP.txt
+$MPIEXEC $MPIEXECN $NP ./goptest -sync > barrier$NP.txt
+if [ -s "barrier$NP.txt" ] ; then
+    gfiles="$gfiles barrier$NP.txt"
+fi
+
+for NN in 2 4 8 ; do
+    if [ $NN -gt $NP ] ; then break ; fi
+    if [ $VERBOSE = yes ] ; then echo "$NN Neighbors:" ; fi
+
+    # Point to point
+    if [ $VERBOSE = yes ] ; then echo "Point-to-point tests" ; fi
+    rm -f sendrecv-$NN.dat sendrecv-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -fname sendrecv-$NN.dat -gnuplot
+    if [ $? = 0 -a -s sendrecv-$NN.gpl ] ; then 
+        gfiles="$gfiles sendrecv-$NN.dat sendrecv-$NN.gpl"
+        gdatafiles="$gdatafiles sendrecv-$NN.gpl"
+    fi
+    rm -f psendrecv-$NN.dat psendrecv-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -sendinit -npartner $NN -fname psendrecv-$NN.dat -gnuplot
+    if [ $? = 0 -a -s psendrecv-$NN.gpl ] ; then 
+        gfiles="$gfiles psendrecv-$NN.dat psendrecv-$NN.gpl"
+        gdatafiles="$gdatafiles psendrecv-$NN.gpl"
+    fi
+
+    # RMA with fence synchronization
+    if [ $VERBOSE = yes ] ; then echo "Fence RMA tests" ; fi
+    rm -f put-$NN.dat put-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -put -fname put-$NN.dat -gnuplot
+    if [ $? = 0 -a -s put-$NN.gpl ] ; then 
+        gfiles="$gfiles put-$NN.dat put-$NN.gpl"
+        gdatafiles="$gdatafiles put-$NN.gpl"
+    fi
+    rm -f putalloc-$NN.dat putalloc-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -put -putoption alloc -fname putalloc-$NN.dat -gnuplot
+    if [ $? = 0 -a -s putalloc-$NN.gpl ] ; then 
+        gfiles="$gfiles putalloc-$NN.dat putalloc-$NN.gpl"
+        gdatafiles="$gdatafiles putalloc-$NN.gpl"
+    fi
+    rm -f putinfo-$NN.dat putinfo-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -put -putoption info -fname putinfo-$NN.dat -gnuplot
+    if [ $? = 0 -a -s putinfo-$NN.gpl ] ; then 
+        gfiles="$gfiles putinfo-$NN.dat putinfo-$NN.gpl"
+        gdatafiles="$gdatafiles putinfo-$NN.gpl"
+    fi
+    rm -f putfence-$NN.dat putfence-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -put -putoption fence -fname putfence-$NN.dat -gnuplot
+    if [ $? = 0 -a -s putfence-$NN.gpl ] ; then 
+        gfiles="$gfiles putfence-$NN.dat putfence-$NN.gpl"
+        gdatafiles="$gdatafiles putfence-$NN.gpl"
+    fi
+    rm -f putall-$NN.dat putall-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -put -putoption alloc -putoption fence -putoption info -fname putall-$NN.dat -gnuplot
+    if [ $? = 0 -a -s putall-$NN.gpl ] ; then 
+        gfiles="$gfiles putall-$NN.dat putall-$NN.gpl"
+        gdatafiles="$gdatafiles putall-$NN.gpl"
+    fi
+
+    rm -f get-$NN.dat get-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -get -fname get-$NN.dat -gnuplot
+    if [ $? = 0 -a -s get-$NN.gpl ] ; then 
+        gfiles="$gfiles get-$NN.dat get-$NN.gpl"
+        gdatafiles="$gdatafiles get-$NN.gpl"
+    fi
+    rm -f getalloc-$NN.dat getalloc-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -get -putoption alloc -fname getalloc-$NN.dat -gnuplot
+    if [ $? = 0 -a -s getalloc-$NN.gpl ] ; then 
+        gfiles="$gfiles getalloc-$NN.dat getalloc-$NN.gpl"
+        gdatafiles="$gdatafiles getalloc-$NN.gpl"
+    fi
+    rm -f getinfo-$NN.dat getinfo-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -get -putoption info -fname getinfo-$NN.dat -gnuplot
+    if [ $? = 0 -a -s getinfo-$NN.gpl ] ; then 
+        gfiles="$gfiles getinfo-$NN.dat getinfo-$NN.gpl"
+        gdatafiles="$gdatafiles getinfo-$NN.gpl"
+    fi
+    rm -f getfence-$NN.dat getfence-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -get -putoption fence -fname getfence-$NN.dat -gnuplot
+    if [ $? = 0 -a -s getfence-$NN.gpl ] ; then 
+        gfiles="$gfiles getfence-$NN.dat getfence-$NN.gpl"
+        gdatafiles="$gdatafiles getfence-$NN.gpl"
+    fi
+    rm -f getall-$NN.dat getall-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -get -putoption alloc -putoption fence -putoption info -fname getall-$NN.dat -gnuplot
+    if [ $? = 0 -a -s getall-$NN.gpl ] ; then 
+        gfiles="$gfiles getall-$NN.dat getall-$NN.gpl"
+        gdatafiles="$gdatafiles getall-$NN.gpl"
+    fi
+
+    if [ "@MPIPSCW@" = yes ] ; then
+     # RMA with Post/Start/Complete/Wait
+     if [ $VERBOSE = yes ] ; then echo "Post/Start RMA tests" ; fi
+     rm -f putpscw-$NN.dat putpscw-$NN.gpl
+     $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -putpscw -fname putpscw-$NN.dat -gnuplot
+     if [ $? = 0 -a -s putpscw-$NN.gpl ] ; then 
+         gfiles="$gfiles putpscw-$NN.dat putpscw-$NN.gpl"
+         gdatafiles="$gdatafiles putpscw-$NN.gpl"
+     fi
+     rm -f putpscwalloc-$NN.dat putpscwalloc-$NN.gpl
+     $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -putpscw -putoption alloc -fname putpscwalloc-$NN.dat -gnuplot
+     if [ $? = 0 -a -s putpscwalloc-$NN.gpl ] ; then 
+         gfiles="$gfiles putpscwalloc-$NN.dat putpscwalloc-$NN.gpl"
+         gdatafiles="$gdatafiles putpscwalloc-$NN.gpl"
+     fi
+     rm -f putpscwinfo-$NN.dat putpscwinfo-$NN.gpl
+     $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -putpscw -putoption info -fname putpscwinfo-$NN.dat -gnuplot
+     if [ $? = 0 -a -s putpscwinfo-$NN.gpl ] ; then 
+         gfiles="$gfiles putpscwinfo-$NN.dat putpscwinfo-$NN.gpl"
+         gdatafiles="$gdatafiles putpscwinfo-$NN.gpl"
+     fi
+     rm -f putpscwall-$NN.dat putpscwall-$NN.gpl
+     $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -putpscw -putoption alloc -putoption info -fname putpscwall-$NN.dat -gnuplot
+     if [ $? = 0 -a -s putpscwall-$NN.gpl ] ; then 
+         gfiles="$gfiles putpscwall-$NN.dat putpscwall-$NN.gpl"
+         gdatafiles="$gdatafiles putpscwall-$NN.gpl"
+     fi
+    fi
+    # RMA with lock/unlock synchronization
+    if [ $VERBOSE = yes ] ; then echo "Passive target RMA tests" ; fi
+    rm -f putlock-$NN.dat putlock-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -putlock -fname putlock-$NN.dat -gnuplot
+    if [ $? = 0 -a -s putlock-$NN.gpl ] ; then 
+        gfiles="$gfiles putlock-$NN.dat putlock-$NN.gpl"
+        gdatafiles="$gdatafiles putlock-$NN.gpl"
+    fi
+    rm -f putlockshared-$NN.dat putlockshared-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -putlock -putoption shared -fname putlockshared-$NN.dat -gnuplot
+    if [ $? = 0 -a -s putlockshared-$NN.gpl ] ; then 
+        gfiles="$gfiles putlockshared-$NN.dat putlockshared-$NN.gpl"
+        gdatafiles="$gdatafiles putlockshared-$NN.gpl"
+    fi
+    rm -f getlockshared-$NN.dat getlockshared-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -getlock -putoption shared -fname getlockshared-$NN.dat -gnuplot
+    if [ $? = 0 -a -s getlockshared-$NN.gpl ] ; then 
+        gfiles="$gfiles getlockshared-$NN.dat getlockshared-$NN.gpl"
+        gdatafiles="$gdatafiles getlockshared-$NN.gpl"
+    fi
+
+    rm -f putlocksharednb-$NN.dat putlocksharednb-$NN.gpl
+    $MPIEXEC $MPIEXECN $NP ./mpptest -halo -npartner $NN -putlock -putoption shared -putoption nobarrier -fname putlocksharednb-$NN.dat -gnuplot
+    if [ $? = 0 -a -s putlocksharednb-$NN.gpl ] ; then 
+        gfiles="$gfiles putlocksharednb-$NN.dat putlocksharednb-$NN.gpl"
+        gdatafiles="$gdatafiles putlocksharednb-$NN.gpl"
+    fi
+done
+#
+#  Save the results
+rm -f halo$NP.txt halo$NP.tar
+./extractdata $gdatafiles > halo$NP.txt
+tar cf halo$NP.tar $gfiles

@@ -171,7 +171,11 @@ initMPICHConfigureOpts() {
       ;;
     handoff|trylock)
        prefix=$prefix"per-vni-"$1
-       threadCS="per-vni"
+       if test github = false; then
+        threadCS="per-vni"
+       else
+        threadCS="per-vci"
+       fi
        izemConfig="--enable-izem=queue \
         --with-zm-prefix=embedded"
        ch4mt="--enable-ch4-mt=$1"

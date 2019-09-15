@@ -1,0 +1,91 @@
+#! @PERL@ -w
+#
+# This script extracts the data from Gnuplot style files and creates a single,
+# aggregate data sheet that may be used with other programs, including 
+# imported into Excel
+#
+$gDebug = 0;
+# ------------------------------------------------------------------------
+# Process arguments and read files
+foreach (@ARGV) {
+    if (/^-(.*)/) {
+    }
+    else {
+	my $basename = $_;
+	$basename =~ s/\..*//;
+	$resultsName = "Result" . $basename;
+	%$resultsName = &ReadDataFile( $_, $basename );
+	$TestFiles[$#TestFiles+1] = $_;
+	$TestShortTitles[$#TestShortTitles+1] = $basename;
+    }
+}
+
+# 
+# Generate the table.  
+# Step 1:
+# Get the union and intersection of the message lenghts
+%unionLen = ();
+%intersectionLen = ();
+for (my $i=0; $i<=$#TestShortTitles; $i++) {
+    my $hashName = "Result" . $TestShortTitles[$i];
+    print "Checking hash $hashName...\n" if $gDebug;
+    foreach my $len (keys(%$hashName)) {
+	$unionLen{$len} = 1;
+	if (!defined($intersectionLen{$len})) {
+	    $intersectionLen{$len} = 0;
+	}
+	$intersectionLen{$len} ++;
+    }
+}
+foreach my $len (keys(%intersectionLen)) {
+    if ($intersectionLen{$len} != $#TestShortTitles+1) {
+	delete( $intersectionLen{$len} );
+    }
+}
+#
+# Step 2: 
+# Create the requested table.  For now, do the intersection table only
+# A title line containing the short names
+print "# len";
+for (my $i = 0; $i <= $#TestShortTitles; $i++) {
+    my $shortname= $TestShortTitles[$i];
+    print "\t$shortname";
+}
+print "\n";
+
+# The actual table
+foreach my $len (sort {$a <=> $b } keys %intersectionLen) {
+    print "$len";
+    for (my $i = 0; $i <= $#TestShortTitles; $i++) {
+	my $hashName = "Result" . $TestShortTitles[$i];
+	my $val = $$hashName{$len};
+	print "\t$val";
+    }
+    print "\n";
+}
+#
+# ToDo: Still need to create the legend information.
+
+exit(0);
+# ------------------------------------------------------------------------
+# Support routines
+#
+# Read a data file, creating a hash with the data
+#   &ReadDataFile( filename, shorttitle )
+sub ReadDataFile {
+    my ($filename, $shorttitle) = @_;
+
+    my $hashName = "Results$shorttitle";
+#    my %$hashName = ();
+    open IFD, "<$filename" or die "Could not open $filename";
+    while (<IFD>) {
+	if (/#/) { next; }
+	if (! /\S/) { next; }
+	my ($src, $dest, $dist, $len, $time, $rate ) = split( /\s+/ );
+	$$hashName{$len} = $time;
+    }
+    close IFD;
+
+    return %$hashName;
+}
+    

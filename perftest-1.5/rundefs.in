@@ -1,0 +1,6 @@
+#
+# This is a csh file that may be used with the csh source command to
+# get values for the MPIRUN program and related commands that are determined
+# by configure
+set MPIEXEC = @MPIEXEC@
+set MPIEXECN = @MPIEXEC_N@
