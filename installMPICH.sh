@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # (C) 2019 Andrey Tabakov <komdosh@yandex.ru> 
 # Script for download, unpack and build MPICH CH4 for developing purposes
@@ -29,21 +29,23 @@ Additional Options:
 	-s - skip manual input [auto launching of: remove previous build,
 	                        configure dirs, make && make install] 
 	-r - replace sources from dev directory
+	-f [branch] - clone mpich sources from github pmodels/mpich
+	                        default branch is master
 	-h - show this message"
 
 DEBUG_FLAGS="-g3 -gdwarf-2"
 
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
   INSTALL="apt-get"
-elif [[ "$OSTYPE"=="darwin"* ]]; then
+elif [[ "$OSTYPE" == "darwin"* ]]; then
   INSTALL="brew"
 else
-  echo "Only Linux or MacOS is allowed for INSTALL"
+  echo "$LOG_PREFIX Only Linux or MacOS is allowed for INSTALL"
 fi
 
-if [[ "$OSTYPE"=="darwin"* ]]; then
-  echo "You should install gcc by your own"
-  export CC=/usr/local/Cellar/gcc/9.1.0/bin/gcc-9
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  echo "$LOG_PREFIX You should install gcc by your own"
+  export CC=/usr/local/bin/gcc-9
 fi
 ################################
 ## Functions
@@ -56,13 +58,13 @@ restoreMPICH()  {
 }
 
 downloadAndUnpackMPICH()  {
-    if test $github = false; then
+    if test "$github" = false; then
       local tarExtension="tar.gz"
       if test ! -f "$MPICH_NAME.$tarExtension";  then
-        echo $LOG_PREFIX "Download mpich sources from http://www.mpich.org ..."
+        echo "$LOG_PREFIX Download mpich sources from http://www.mpich.org ..."
         eval "wget http://www.mpich.org/static/downloads/$MPICH_VERSION/$MPICH_NAME.$tarExtension"
       else 
-        echo $LOG_PREFIX "Sources already downloaded"
+        echo "$LOG_PREFIX Sources already downloaded"
       fi
       echo "$LOG_PREFIX Unpack sources to $MPICH_NAME"
       eval "tar -xzf $MPICH_NAME.$tarExtension"
@@ -73,42 +75,42 @@ downloadAndUnpackMPICH()  {
 
 cloneMpichGithub() {
     if test ! -f "$MPICH_GITHUB_NAME/src/README";  then
-      echo $LOG_PREFIX "Clone mpich sources from github ..."
+      echo "$LOG_PREFIX Clone mpich sources from github ..."
       eval "git clone git@github.com:pmodels/mpich.git"
     else 
-      echo $LOG_PREFIX "Repo mpich already downloaded"
+      echo "$LOG_PREFIX Repo mpich already downloaded"
     fi
     if test ! -f "$MPICH_GITHUB_NAME/src/hwloc/README";  then
       eval "cd $MPICH_GITHUB_NAME/src"
-      echo $LOG_PREFIX "Clone hwloc sources from github ..."
+      echo "$LOG_PREFIX Clone hwloc sources from github ..."
       eval "git clone git@github.com:pmodels/hwloc.git"
       eval "cd ../../"
     else 
-      echo $LOG_PREFIX "Repo hwloc already downloaded"
+      echo "$LOG_PREFIX Repo hwloc already downloaded"
     fi
     if test ! -f "$MPICH_GITHUB_NAME/src/izem/README";  then
       eval "cd $MPICH_GITHUB_NAME/src"
-      echo $LOG_PREFIX "Clone izem sources from github ..."
+      echo "$LOG_PREFIX Clone izem sources from github ..."
       eval "git clone git@github.com:pmodels/izem.git"
       eval "cd ../../"
     else 
-      echo $LOG_PREFIX "Repo izem already downloaded"
+      echo "$LOG_PREFIX Repo izem already downloaded"
     fi
     if test ! -f "$MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ucx/ucx/README";  then
       eval "cd $MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ucx"
-      echo $LOG_PREFIX "Clone ucx sources from github ..."
+      echo "$LOG_PREFIX Clone ucx sources from github ..."
       eval "git clone git@github.com:pmodels/ucx.git"
       eval "cd ../../../../../../"
     else 
-      echo $LOG_PREFIX "Repo ucx already downloaded"
+      echo "$LOG_PREFIX Repo ucx already downloaded"
     fi
     if test ! -f "$MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ofi/libfabric/README";  then
       eval "cd $MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ofi"
-      echo $LOG_PREFIX "Clone libfabric sources from github ..."
+      echo "$LOG_PREFIX Clone libfabric sources from github ..."
       eval "git clone git@github.com:pmodels/libfabric.git"
       eval "cd ../../../../../../"
     else 
-      echo $LOG_PREFIX "Repo libfabric already downloaded"
+      echo "$LOG_PREFIX Repo libfabric already downloaded"
     fi
 }
 
@@ -117,13 +119,13 @@ getMPICHSources() {
   local reinstallMPICH=""
   
   if test ! -d "$CURRENT_MPICH_NAME"; then
-	  echo $LOG_PREFIX "There is no installed MPICH. Download and unpack it.."
+	  echo "$LOG_PREFIX There is no installed MPICH. Download and unpack it.."
     downloadAndUnpackMPICH
   else
-    echo $LOG_PREFIX "MPICH already downloaded and unpacked"
+    echo "$LOG_PREFIX MPICH already downloaded and unpacked"
 	  
-	  if test $auto = false; then
-      read -p "Do you want to delete current mpich directory, download and unpack it again? [y/N]: " reinstallMPICH
+	  if test "$auto" = false; then
+      read -r -p "Do you want to delete current mpich directory, download and unpack it again? [y/N]: " reinstallMPICH
     else
       reinstallMPICH="y"
     fi
@@ -135,8 +137,8 @@ getMPICHSources() {
     restoreMPICH
 	fi
 	
-	if test $replaceSources = true; then
-	  echo $LOG_PREFIX "Replace sources from dev directory"
+	if test "$replaceSources" = true; then
+	  echo "$LOG_PREFIX Replace sources from dev directory"
 	  
     eval "cd $CURRENT_MPICH_NAME"
 	  eval "cp -a ../../dev/. ./"
@@ -146,10 +148,10 @@ getMPICHSources() {
 
 createMPICHDir() {
 	if test ! -d "$MPICH_DIR_NAME"; then
-		echo $LOG_PREFIX "Create MPICH directory"
+		echo "$LOG_PREFIX Create MPICH directory"
 		mkdir mpich
 	else
-		echo $LOG_PREFIX "MPICH directory already exists"
+		echo "$LOG_PREFIX MPICH directory already exists"
 	fi
 	eval "cd $MPICH_DIR_NAME"
 }
@@ -206,7 +208,7 @@ initMPICHConfigureOpts() {
   
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
         LIBFABRIC="/usr/lib64"
-elif [[ "$OSTYPE"=="darwin"* ]]; then
+elif [[ "$OSTYPE" == "darwin"* ]]; then
         LIBFABRIC="/usr/local/Cellar/libfabric/1.6.2"
 fi
 
@@ -253,7 +255,7 @@ removeOldInstallation() {
 }
 
 installation()  {
-  echo $LOG_PREFIX "MPICH installation started..."
+  echo "$LOG_PREFIX MPICH installation started..."
   
   createMPICHDir
   getMPICHSources
@@ -274,7 +276,7 @@ installation()  {
       # no action
       ;;
     *)
-      echo $LOG_PREFIX "Wrong installation function ask developer for fix it"
+      echo "$LOG_PREFIX Wrong installation function ask developer for fix it"
   esac
   
   case $1 in
@@ -288,16 +290,16 @@ installation()  {
       fi
   
       if test $auto = true || test "$makeInstall" = "y" || test "$makeInstall" = "Y"; then
-        echo $LOG_PREFIX 
+        echo "$LOG_PREFIX"
         eval "date"
         makeAndInstall
-        echo $LOG_PREFIX 
+        echo "$LOG_PREFIX"
         eval "date"
       fi
       ;;
   esac
   
-  echo $LOG_PREFIX "MPICH installation finished!"
+  echo "$LOG_PREFIX MPICH installation finished!"
 }
 
 installHwloc() {
@@ -314,13 +316,13 @@ installHwloc() {
 		    git clone https://github.com/open-mpi/hwloc.git
 		  fi
 		  
-		  cd hwloc
+		  cd hwloc || exit 1
 		  
 		  autoconfPath=$(command -v autoconf)
-      if test $autoconfPath = ""; then 
+      if test "$autoconfPath" = ""; then
         eval "$INSTALL install autogen"
         eval "$INSTALL install autoconf"
-        if [[ "$OSTYPE"!="darwin"* ]]; then
+        if [[ "$OSTYPE" != "darwin"* ]]; then
           eval "$INSTALL install xorg-dev"
         fi
 		  fi
@@ -372,22 +374,25 @@ while getopts ":srp:fo" opt; do
       github=true
       CURRENT_MPICH_NAME=$MPICH_GITHUB_NAME
       if test -z "$branch"; then
-			  echo $LOG_PREFIX "Github branch set to master"
+			  echo "$LOG_PREFIX Github branch set to master"
         branch="master"
       else
-        echo $LOG_PREFIX "Github branch set to $branch"
+        echo "$LOG_PREFIX Github branch set to $branch"
 			fi
       ;;
     p) #check per-vni
 		  perVniType=${OPTARG}
       if test "$perVniType" != "trylock" && test "$perVniType" != "handoff"; then
-			  echo $LOG_PREFIX "Wrong per-vni type, trylock or handoff only!"
+			  echo "$LOG_PREFIX Wrong per-vni type, trylock or handoff only!"
 			  exit 1
 			fi
 			;;
 		o) #optimization of installation
 		  optimizedBuild=true
 		  ;;
+		*)
+		  echo "	$HELP"
+		  exit 1
   esac
 done
 
@@ -406,7 +411,7 @@ while getopts ":gp:dh" opt; do
 			installation "$perVniType"
 			;;
 		d) #download and unpack only
-			echo $LOG_PREFIX "Download and unpacking mpich"
+			echo "$LOG_PREFIX Download and unpacking mpich"
 			installation "downloadUnpack"
 			;;
 		h) #help message
