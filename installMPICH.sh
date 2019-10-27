@@ -58,8 +58,8 @@ restoreMPICH()  {
 }
 
 downloadAndUnpackMPICH()  {
-    if test "$github" = false; then
-      local tarExtension="tar.gz"
+    local tarExtension="tar.gz"
+    if test github = false; then
       if test ! -f "$MPICH_NAME.$tarExtension";  then
         echo "$LOG_PREFIX Download mpich sources from http://www.mpich.org ..."
         eval "wget http://www.mpich.org/static/downloads/$MPICH_VERSION/$MPICH_NAME.$tarExtension"
@@ -68,19 +68,19 @@ downloadAndUnpackMPICH()  {
       fi
       echo "$LOG_PREFIX Unpack sources to $MPICH_NAME"
       eval "tar -xzf $MPICH_NAME.$tarExtension"
-    else  
+    else
       cloneMpichGithub
     fi
 }
 
 cloneMpichGithub() {
-    if test ! -f "$MPICH_GITHUB_NAME/src/README";  then
+    if test ! -f "$MPICH_GITHUB_NAME/README"*;  then
       echo "$LOG_PREFIX Clone mpich sources from github ..."
       eval "git clone git@github.com:pmodels/mpich.git"
     else 
       echo "$LOG_PREFIX Repo mpich already downloaded"
     fi
-    if test ! -f "$MPICH_GITHUB_NAME/src/hwloc/README";  then
+    if test ! -f "$MPICH_GITHUB_NAME/src/hwloc/README"*;  then
       eval "cd $MPICH_GITHUB_NAME/src"
       echo "$LOG_PREFIX Clone hwloc sources from github ..."
       eval "git clone git@github.com:pmodels/hwloc.git"
@@ -88,7 +88,7 @@ cloneMpichGithub() {
     else 
       echo "$LOG_PREFIX Repo hwloc already downloaded"
     fi
-    if test ! -f "$MPICH_GITHUB_NAME/src/izem/README";  then
+    if test ! -f "$MPICH_GITHUB_NAME/src/izem/README"*;  then
       eval "cd $MPICH_GITHUB_NAME/src"
       echo "$LOG_PREFIX Clone izem sources from github ..."
       eval "git clone git@github.com:pmodels/izem.git"
@@ -96,7 +96,7 @@ cloneMpichGithub() {
     else 
       echo "$LOG_PREFIX Repo izem already downloaded"
     fi
-    if test ! -f "$MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ucx/ucx/README";  then
+    if test ! -f "$MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ucx/ucx/README"*;  then
       eval "cd $MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ucx"
       echo "$LOG_PREFIX Clone ucx sources from github ..."
       eval "git clone git@github.com:pmodels/ucx.git"
@@ -104,7 +104,7 @@ cloneMpichGithub() {
     else 
       echo "$LOG_PREFIX Repo ucx already downloaded"
     fi
-    if test ! -f "$MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ofi/libfabric/README";  then
+    if test ! -f "$MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ofi/libfabric/README"*;  then
       eval "cd $MPICH_GITHUB_NAME/src/mpid/ch4/netmod/ofi"
       echo "$LOG_PREFIX Clone libfabric sources from github ..."
       eval "git clone git@github.com:pmodels/libfabric.git"
@@ -117,20 +117,23 @@ cloneMpichGithub() {
 
 getMPICHSources() { 
   local reinstallMPICH=""
-  
+
   if test ! -d "$CURRENT_MPICH_NAME"; then
 	  echo "$LOG_PREFIX There is no installed MPICH. Download and unpack it.."
     downloadAndUnpackMPICH
   else
-    echo "$LOG_PREFIX MPICH already downloaded and unpacked"
-	  
+    if test github = false; then 
+      echo "$LOG_PREFIX MPICH already downloaded and unpacked"
+	  else
+      cloneMpichGithub
+    fi
 	  if test "$auto" = false; then
       read -r -p "Do you want to delete current mpich directory, download and unpack it again? [y/N]: " reinstallMPICH
     else
-      reinstallMPICH="y"
+      reinstallMPICH="n"
     fi
     
-    if test "$reinstallMPICH" != "y" && test "$reinstallMPICH" != "Y"; then
+    if test "$reinstallMPICH" = "n" || test "$reinstallMPICH" != "N"; then
       return 0
     fi
     
@@ -360,10 +363,10 @@ optimizedBuild=false
 #get sources from github repo
 github=false
 
-
-while getopts ":srp:fo" opt; do
+while getopts ":srp:f:o" opt; do
   case $opt in
     s) #skip user manual input
+      echo "$LOG_PREFIX Skip manual input"
       auto=true
       ;;
     r) #replace mpich source files from ./dev directory
@@ -390,19 +393,17 @@ while getopts ":srp:fo" opt; do
 		o) #optimization of installation
 		  optimizedBuild=true
 		  ;;
-		*)
-		  echo "	$HELP"
-		  exit 1
   esac
 done
 
 OPTIND=1
 
-installHwloc
+# installHwloc
 
-while getopts ":gp:dh" opt; do
+while getopts ":gdhp:" opt; do
 	case $opt in
 		g) #global critical section
+      echo "$LOG_PREFIX Use global critical section"
 			installation "global"
 			;;
 		p) #per-vni
