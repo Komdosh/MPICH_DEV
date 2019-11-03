@@ -240,7 +240,7 @@ initMPICHConfigureOpts() {
 
   case $1 in
   global)
-    MPICH_PATH=$INSTALLATION_PATH_PREFIX"/global"
+    MPICH_PATH=$INSTALLATION_PATH_PREFIX$ADDITIONAL_INSTALLATION_PATH_SUFFIX"/global"
     threadCS="global"
     ;;
   handoff | trylock)
