@@ -446,7 +446,7 @@ initDefaultOptions() {
 showElapsedTime(){
   message=$1
   duration=$SECONDS
-  SCRIPT_SECONDS+=duration
+  SCRIPT_SECONDS+=$duration
   echo "$LOG_PREFIX $message in $(($duration / 60)) min and $(($duration % 60)) sec"
 }
 
