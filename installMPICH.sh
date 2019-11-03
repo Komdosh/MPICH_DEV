@@ -20,7 +20,7 @@ SCRIPT_OSTYPE=""
 MPICH_VERSION="3.3.1"
 MPICH_NAME="mpich-$MPICH_VERSION"
 MPICH_GITHUB_NAME="mpich"
-LOG_FILE_PATH="installationLogs.txt"
+LOG_FILE_PATH="../../installationLogs.txt"
 
 CURRENT_MPICH_NAME=$MPICH_NAME
 
@@ -488,7 +488,7 @@ while getopts ":srp:b:i:ol:" opt; do
     echo "$LOG_PREFIX Additional installation path suffix is set to $ADDITIONAL_INSTALLATION_PATH_SUFFIX"
     ;;
   l)
-    LOG_FILE_PATH="../../${OPTARG}"
+    LOG_FILE_PATH="${OPTARG}"
     rm -rf "$LOG_FILE_PATH"
     echo "$LOG_PREFIX logfile path set to $LOG_FILE_PATH"
     ;;
