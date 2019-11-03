@@ -292,7 +292,7 @@ initMPICHConfigureOpts() {
   $CXXFlags \
   --silent \
   --prefix=$MPICH_PATH \
-  --with-hwloc=/opt/hwloc \
+  --with-hwloc=$INSTALLATION_PATH_PREFIX/hwloc \
   --with-device=ch4:ofi \
   --with-libfabric=$LIBFABRIC \
   --enable-threads=multiple \
@@ -387,7 +387,7 @@ installation() {
 
 installHwloc() {
   SECONDS=0
-  if test -d "/opt/hwloc"; then
+  if test -d "$INSTALLATION_PATH_PREFIX/hwloc"; then
     return 0
   fi
 
@@ -412,7 +412,7 @@ installHwloc() {
   fi
   eval "$INSTALL install libtool"
   ./autogen.sh &> $LOG_FILE_PATH
-  ./configure --prefix=/opt/hwloc &> $LOG_FILE_PATH
+  eval "./configure --prefix=$INSTALLATION_PATH_PREFIX/hwloc &> $LOG_FILE_PATH"
   make &> $LOG_FILE_PATH
   make install &> $LOG_FILE_PATH
   cd ../
