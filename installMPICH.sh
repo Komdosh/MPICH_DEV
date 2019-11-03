@@ -12,6 +12,8 @@
 
 LOG_PREFIX="[InstallMPICH]:"
 
+SCRIPT_SECONDS=0
+
 ADDITIONAL_INSTALLATION_PATH_SUFFIX=""
 MPICH_DIR_NAME="mpich"
 INSTALLATION_PATH_PREFIX=$(pwd)"/$MPICH_DIR_NAME/compiled$ADDITIONAL_INSTALLATION_PATH_SUFFIX"
@@ -383,6 +385,7 @@ installation() {
   echo "$LOG_PREFIX MPICH installation finished! MPICH directory: $MPICH_PATH"
   echo "$LOG_PREFIX now set path to mpicc: $MPICH_PATH/bin/mpicc
                     mpiexec: $MPICH_PATH/bin/mpiexec"
+  echo "$LOG_PREFIX Script worked for $(($SCRIPT_SECONDS / 60)) min and $(($SCRIPT_SECONDS % 60)) sec"
 }
 
 installHwloc() {
@@ -443,6 +446,7 @@ initDefaultOptions() {
 showElapsedTime(){
   message=$1
   duration=$SECONDS
+  SCRIPT_SECONDS+=duration
   echo "$LOG_PREFIX $message in $(($duration / 60)) min and $(($duration % 60)) sec"
 }
 
