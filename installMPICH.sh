@@ -113,15 +113,16 @@ getMPICH() {
     if test ! -f "$MPICH_NAME.$tarExtension"; then
       echo "$LOG_PREFIX Download mpich sources from http://www.mpich.org ..."
       eval "wget http://www.mpich.org/static/downloads/$MPICH_VERSION/$MPICH_NAME.$tarExtension"
+      showElapsedTime "MPICH downloaded"
     else
       echo "$LOG_PREFIX Sources already downloaded"
     fi
     echo "$LOG_PREFIX Unpack sources to $MPICH_NAME"
     eval "tar -xzf $MPICH_NAME.$tarExtension"
+    showElapsedTime "MPICH downloaded"
   else
     cloneMpichGithub
   fi
-  showElapsedTime "MPICH downloaded in"
 }
 
 cloneMpichGithub() {
