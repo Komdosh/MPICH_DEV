@@ -257,7 +257,7 @@ initMPICHConfigureOpts() {
   esac
 
   if test ! -d "$MPICH_PATH"; then
-    mkdir "$MPICH_PATH"
+    mkdir -p "$MPICH_PATH"
   fi
   changeOwnershipToUser "$MPICH_PATH"
 
