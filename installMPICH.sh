@@ -215,7 +215,7 @@ changeOwnershipToUser() {
 
   if ! [ "$(id -u)" -eq 0 ]; then
     echo "$LOG_PREFIX This script doesn't have enough rights
-      to write to $dir directory. You should make it available"
+      to write to $dir directory. You should make it available."
     exit 0
   fi
   SCRIPT_USER=""
@@ -244,7 +244,7 @@ initMPICHConfigureOpts() {
     threadCS="global"
     ;;
   handoff | trylock)
-    MPICH_PATH=$INSTALLATION_PATH_PREFIX"/per-vci-"$1
+    MPICH_PATH=$INSTALLATION_PATH_PREFIX$ADDITIONAL_INSTALLATION_PATH_SUFFIX"/per-vci-"$1
     if test "$github" = false; then
       threadCS="per-vni" #new mpich will use per-vci, instead of per-vni option
     else
