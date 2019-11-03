@@ -14,7 +14,7 @@ LOG_PREFIX="[InstallMPICH]:"
 
 ADDITIONAL_INSTALLATION_PATH_SUFFIX=""
 MPICH_DIR_NAME="mpich"
-INSTALLATION_PATH_PREFIX="/opt/$MPICH_DIR_NAME/$ADDITIONAL_INSTALLATION_PATH_SUFFIX"
+INSTALLATION_PATH_PREFIX=$(pwd)"/$MPICH_DIR_NAME/compiled$ADDITIONAL_INSTALLATION_PATH_SUFFIX"
 MPICH_PATH=""
 SCRIPT_OSTYPE=""
 MPICH_VERSION="3.3.1"
@@ -240,11 +240,11 @@ initMPICHConfigureOpts() {
 
   case $1 in
   global)
-    MPICH_PATH=$INSTALLATION_PATH_PREFIX"global"
+    MPICH_PATH=$INSTALLATION_PATH_PREFIX"/global"
     threadCS="global"
     ;;
   handoff | trylock)
-    MPICH_PATH=$INSTALLATION_PATH_PREFIX"per-vci-"$1
+    MPICH_PATH=$INSTALLATION_PATH_PREFIX"/per-vci-"$1
     if test "$github" = false; then
       threadCS="per-vni" #new mpich will use per-vci, instead of per-vni option
     else
@@ -379,8 +379,10 @@ installation() {
     ;;
   esac
 
-  changeOwnershipToUser $INSTALLATION_PATH_PREFIX
-  echo "$LOG_PREFIX MPICH installation finished! MPICH directory: $INSTALLATION_PATH_PREFIX"
+  changeOwnershipToUser "$MPICH_PATH"
+  echo "$LOG_PREFIX MPICH installation finished! MPICH directory: $MPICH_PATH"
+  echo "$LOG_PREFIX now set path to mpicc: $MPICH_PATH/bin/mpicc
+                    mpiexec: $MPICH_PATH/bin/mpiexec"
 }
 
 installHwloc() {
