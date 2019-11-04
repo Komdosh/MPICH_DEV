@@ -93,10 +93,10 @@ setupOSDeps() {
     fi
   fi
 
-  if test "$OSTYPE" == "darwin"; then
-    if test CC_PATH == ""; then
-      CC_PATH=/usr/local/bin/gcc-9
-    fi
+  if test "$SCRIPT_OSTYPE" == "darwin"; then
+    #if test CC_PATH == ""; then
+    CC_PATH=/usr/local/bin/gcc-9
+    #fi
     echo "$LOG_PREFIX You should install gcc by your own, and set CC_PATH environment variable, now path is $CC_PATH"
     export CC=CC_PATH
   fi
@@ -178,7 +178,9 @@ getMPICHSources() {
     if test "$github" = false; then
       echo "$LOG_PREFIX MPICH already downloaded and unpacked"
     else
+      SECONDS=0
       cloneMpichGithub
+      showElapsedTime "MPICH downloaded"
     fi
     if test "$auto" = false; then
       read -r -p "Do you want to delete current mpich directory, download and unpack it again? [y/N]: " reinstallMPICH
@@ -232,8 +234,8 @@ changeOwnershipToUser() {
 
 initMPICHConfigureOpts() {
   if test "$github" = true; then
-    git fetch &> $LOG_FILE_PATH
-    sh ./autogen.sh &> $LOG_FILE_PATH
+    git fetch &>$LOG_FILE_PATH
+    sh ./autogen.sh &>$LOG_FILE_PATH
   fi
 
   local threadCS=""
@@ -277,8 +279,8 @@ initMPICHConfigureOpts() {
     --enable-g=none"
   else
     CFlags="CFLAGS=\"$DEBUG_FLAGS\"" \
-    CXXFlags="CXXFLAGS=\"$DEBUG_FLAGS\"" \
-    performanceKeys="--enable-fast=O0 \
+      CXXFlags="CXXFLAGS=\"$DEBUG_FLAGS\"" \
+      performanceKeys="--enable-fast=O0 \
   --enable-timing=all \
   --enable-mutex-timing \
   --enable-g=all"
@@ -309,9 +311,9 @@ initMPICHConfigureOpts() {
 makeAndInstall() {
   SECONDS=0
   echo "$LOG_PREFIX Make and install MPICH sources"
-  make clean &> $LOG_FILE_PATH
-  make -j 7 &> $LOG_FILE_PATH
-  make install &> $LOG_FILE_PATH
+  make clean &>$LOG_FILE_PATH
+  make -j 7 &>$LOG_FILE_PATH
+  make install &>$LOG_FILE_PATH
   showElapsedTime "MPICH installed"
 }
 
@@ -345,6 +347,7 @@ installation() {
 
   installationType="$1"
 
+  SECONDS=0
   case $installationType in
   global)
     initMPICHConfigureOpts "global"
@@ -362,11 +365,12 @@ installation() {
     echo "$LOG_PREFIX Wrong installation function ask developer for fix it"
     ;;
   esac
+  showElapsedTime "MPICH options configured"
 
   case $installationType in
   global | handoff | trylock)
     SECONDS=0
-    eval "./configure $MPICH_CONFIGURE_OPTS" &> $LOG_FILE_PATH
+    eval "./configure $MPICH_CONFIGURE_OPTS" &>$LOG_FILE_PATH
     showElapsedTime "MPICH configured"
 
     if test "$auto" = false; then
@@ -384,7 +388,7 @@ installation() {
   changeOwnershipToUser "$MPICH_PATH"
   echo "$LOG_PREFIX MPICH installation finished! MPICH directory: $MPICH_PATH"
   echo "$LOG_PREFIX now set path to mpicc: $MPICH_PATH/bin/mpicc
-                    mpiexec: $MPICH_PATH/bin/mpiexec"
+                mpiexec: $MPICH_PATH/bin/mpiexec"
   echo "$LOG_PREFIX Script worked for $(($SCRIPT_SECONDS / 60)) min and $(($SCRIPT_SECONDS % 60)) sec"
 }
 
@@ -414,10 +418,10 @@ installHwloc() {
     fi
   fi
   eval "$INSTALL install libtool"
-  ./autogen.sh &> $LOG_FILE_PATH
+  ./autogen.sh &>$LOG_FILE_PATH
   eval "./configure --prefix=$INSTALLATION_PATH_PREFIX/hwloc &> $LOG_FILE_PATH"
-  make &> $LOG_FILE_PATH
-  make install &> $LOG_FILE_PATH
+  make &>$LOG_FILE_PATH
+  make install &>$LOG_FILE_PATH
   cd ../
   showElapsedTime "hwloc installed"
 }
@@ -443,10 +447,10 @@ initDefaultOptions() {
   setupOSDeps
 }
 
-showElapsedTime(){
+showElapsedTime() {
   message=$1
   duration=$SECONDS
-  SCRIPT_SECONDS+=$duration
+  SCRIPT_SECONDS="$((duration + SCRIPT_SECONDS))"
   echo "$LOG_PREFIX $message in $(($duration / 60)) min and $(($duration % 60)) sec"
 }
 
@@ -495,7 +499,9 @@ while getopts ":srp:b:i:ol:" opt; do
     ;;
   l)
     LOG_FILE_PATH="${OPTARG}"
-    rm -rf "$LOG_FILE_PATH"
+    if test "$LOG_FILE_PATH" != "/dev/null"; then
+      rm -rf "$LOG_FILE_PATH"
+    fi
     echo "$LOG_PREFIX logfile path set to $LOG_FILE_PATH"
     ;;
   \?) #end of line
