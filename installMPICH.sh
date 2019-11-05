@@ -273,11 +273,6 @@ initMPICHConfigureOpts() {
     ;;
   esac
 
-  if test ! -d "$MPICH_PATH"; then
-    mkdir -p "$MPICH_PATH"
-  fi
-  changeOwnershipToUser "$MPICH_PATH"
-
   echo "$LOG_PREFIX Configure MPICH with $threadCS CS to $MPICH_PATH"
 
   removeOldInstallation "$MPICH_PATH"
