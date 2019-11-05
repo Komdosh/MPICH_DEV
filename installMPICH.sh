@@ -222,7 +222,7 @@ createMPICHDir() {
 changeOwnershipToUser() {
   dir="$1"
 
-  DIR_OWNER=$(stat -c "%U" $dir)
+  DIR_OWNER=$(ls -ld "$dir" | awk '{print $3}')
   if test "$USER" != "$DIR_OWNER"; then
     echo "$LOG_PREFIX this directory aleready belong to $USER"
     return 0
@@ -244,9 +244,12 @@ changeOwnershipToUser() {
 
 initMPICHConfigureOpts() {
   if test "$github" = true; then
-    git fetch &>$LOG_FILE_PATH
-    sh ./autogen.sh &>$LOG_FILE_PATH
+    changed=$(git fetch &>$LOG_FILE_PATH)
+    if test -n "$changed"; then
+      sh ./autogen.sh &>$LOG_FILE_PATH
+    fi
   fi
+
 
   local threadCS=""
   local izemConfig="" #izem necessary only for per-vci CS
