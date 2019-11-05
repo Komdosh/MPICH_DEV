@@ -234,8 +234,8 @@ changeOwnershipToUser() {
 
 initMPICHConfigureOpts() {
   if test "$github" = true; then
-    git fetch &>$LOG_FILE_PATH
-    sh ./autogen.sh &>$LOG_FILE_PATH
+    git fetch &>>$LOG_FILE_PATH
+    sh ./autogen.sh &>>$LOG_FILE_PATH
   fi
 
   local threadCS=""
@@ -311,9 +311,9 @@ initMPICHConfigureOpts() {
 makeAndInstall() {
   SECONDS=0
   echo "$LOG_PREFIX Make and install MPICH sources"
-  make clean &>$LOG_FILE_PATH
-  make -j 7 &>$LOG_FILE_PATH
-  make install &>$LOG_FILE_PATH
+  make clean &>>$LOG_FILE_PATH
+  make -j 7 &>>$LOG_FILE_PATH
+  make install &>>$LOG_FILE_PATH
   showElapsedTime "MPICH installed"
 }
 
@@ -370,7 +370,7 @@ installation() {
   case $installationType in
   global | handoff | trylock)
     SECONDS=0
-    eval "./configure $MPICH_CONFIGURE_OPTS" &>$LOG_FILE_PATH
+    eval "./configure $MPICH_CONFIGURE_OPTS" &>>$LOG_FILE_PATH
     showElapsedTime "MPICH configured"
 
     if test "$auto" = false; then
@@ -418,10 +418,10 @@ installHwloc() {
     fi
   fi
   eval "$INSTALL install libtool"
-  ./autogen.sh &>$LOG_FILE_PATH
-  eval "./configure --prefix=$INSTALLATION_PATH_PREFIX/hwloc &> $LOG_FILE_PATH"
-  make &>$LOG_FILE_PATH
-  make install &>$LOG_FILE_PATH
+  ./autogen.sh &>>$LOG_FILE_PATH
+  eval "./configure --prefix=$INSTALLATION_PATH_PREFIX/hwloc &>> $LOG_FILE_PATH"
+  make &>>$LOG_FILE_PATH
+  make install &>>$LOG_FILE_PATH
   cd ../
   showElapsedTime "hwloc installed"
 }
