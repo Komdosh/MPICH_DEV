@@ -193,7 +193,7 @@ getMPICHSources() {
       reinstallMPICH="$replaceSources"
     fi
 
-    if [ -z "$reinstallMPICH" ] || [ "$reinstallMPICH" = "n" ] || [ "$reinstallMPICH" != "N" ]; then
+    if [ "$reinstallMPICH" = "n" ] || [ "$reinstallMPICH" = "N" ]; then
       return 0
     fi
 
@@ -481,6 +481,7 @@ while getopts ":srp:b:i:ol:" opt; do
     auto=true
     ;;
   r) #replace mpich source files from ./dev directory
+    echo "$LOG_PREFIX ./dev sources is used"
     replaceSources=true
     ;;
   b) #set mpich source to github
