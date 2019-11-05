@@ -97,8 +97,13 @@ setupOSDeps() {
     if test "$CC_PATH" == ""; then
       CC_PATH=/usr/local/bin/gcc-9
     fi
-    echo "$LOG_PREFIX You should install gcc by your own, and set CC_PATH environment variable, now path is $CC_PATH"
+    if test "$CXX_PATH" == ""; then
+      CXX_PATH=/usr/local/bin/g++-9
+    fi
+    echo "$LOG_PREFIX You should install gcc and g++ by your own, and set CC_PATH and
+    CXX_PATH environment variable, now CC_PATH=$CC_PATH, CXX_PATH=$CXX_PATH"
     export CC=CC_PATH
+    export CXX=CXX_PATH
   fi
 }
 
@@ -239,8 +244,8 @@ changeOwnershipToUser() {
 
 initMPICHConfigureOpts() {
   if test "$github" = true; then
-    git fetch >>$LOG_FILE_PATH
-    sh ./autogen.sh >>$LOG_FILE_PATH
+    git fetch &>$LOG_FILE_PATH
+    sh ./autogen.sh &>$LOG_FILE_PATH
   fi
 
   local threadCS=""
@@ -316,9 +321,9 @@ initMPICHConfigureOpts() {
 makeAndInstall() {
   SECONDS=0
   echo "$LOG_PREFIX Make and install MPICH sources"
-  make clean >>$LOG_FILE_PATH
-  make -j 7 >>$LOG_FILE_PATH
-  make install >>$LOG_FILE_PATH
+  make clean &>$LOG_FILE_PATH
+  make -j 7 &>$LOG_FILE_PATH
+  make install &>$LOG_FILE_PATH
   showElapsedTime "MPICH installed"
 }
 
@@ -375,7 +380,7 @@ installation() {
   case $installationType in
   global | handoff | trylock)
     SECONDS=0
-    eval "./configure $MPICH_CONFIGURE_OPTS" >>$LOG_FILE_PATH
+    eval "./configure $MPICH_CONFIGURE_OPTS &>$LOG_FILE_PATH"
     showElapsedTime "MPICH configured"
 
     if test "$auto" = false; then
@@ -394,7 +399,7 @@ installation() {
   echo "$LOG_PREFIX MPICH installation finished! MPICH directory: $MPICH_PATH"
   echo "$LOG_PREFIX now set path to mpicc: $MPICH_PATH/bin/mpicc
                 mpiexec: $MPICH_PATH/bin/mpiexec"
-  echo "$LOG_PREFIX Script worked for $(($SCRIPT_SECONDS / 60)) min and $(($SCRIPT_SECONDS % 60)) sec"
+  echo "$LOG_PREFIX Script worked for $((SCRIPT_SECONDS / 60)) min and $((SCRIPT_SECONDS % 60)) sec"
 }
 
 installHwloc() {
@@ -423,10 +428,10 @@ installHwloc() {
     fi
   fi
   eval "$INSTALL install libtool"
-  ./autogen.sh >>$LOG_FILE_PATH
-  eval "./configure --prefix=$INSTALLATION_PATH_PREFIX/hwloc >> $LOG_FILE_PATH"
-  make >>$LOG_FILE_PATH
-  make install >>$LOG_FILE_PATH
+  ./autogen.sh &>$LOG_FILE_PATH
+  eval "./configure --prefix=$INSTALLATION_PATH_PREFIX/hwloc &> $LOG_FILE_PATH"
+  make &>$LOG_FILE_PATH
+  make install &>$LOG_FILE_PATH
   cd ../
   showElapsedTime "hwloc installed"
 }
