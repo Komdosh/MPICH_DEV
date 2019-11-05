@@ -102,8 +102,8 @@ setupOSDeps() {
     fi
     echo "$LOG_PREFIX You should install gcc and g++ by your own, and set CC_PATH and
     CXX_PATH environment variable, now CC_PATH=$CC_PATH, CXX_PATH=$CXX_PATH"
-    export CC=CC_PATH
-    export CXX=CXX_PATH
+    export CC=$CC_PATH
+    export CXX=$CXX_PATH
   fi
 }
 
