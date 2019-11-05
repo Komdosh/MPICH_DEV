@@ -94,9 +94,9 @@ setupOSDeps() {
   fi
 
   if test "$SCRIPT_OSTYPE" == "darwin"; then
-    #if test CC_PATH == ""; then
-    CC_PATH=/usr/local/bin/gcc-9
-    #fi
+    if test "$CC_PATH" == ""; then
+      CC_PATH=/usr/local/bin/gcc-9
+    fi
     echo "$LOG_PREFIX You should install gcc by your own, and set CC_PATH environment variable, now path is $CC_PATH"
     export CC=CC_PATH
   fi
@@ -217,10 +217,15 @@ createMPICHDir() {
 changeOwnershipToUser() {
   dir="$1"
 
+  DIR_OWNER=$(stat -c "%U" $dir)
+  if test "$USER" != "$DIR_OWNER"; then
+    echo "$LOG_PREFIX this directory aleready belong to $USER"
+    return 0
+  fi
   if ! [ "$(id -u)" -eq 0 ]; then
     echo "$LOG_PREFIX This script doesn't have enough rights
       to write to $dir directory. You should make it available."
-    exit 0
+    return 0
   fi
   SCRIPT_USER=""
   if test -z "$SUDO_USER"; then
@@ -234,8 +239,8 @@ changeOwnershipToUser() {
 
 initMPICHConfigureOpts() {
   if test "$github" = true; then
-    git fetch &>>$LOG_FILE_PATH
-    sh ./autogen.sh &>>$LOG_FILE_PATH
+    git fetch >>$LOG_FILE_PATH
+    sh ./autogen.sh >>$LOG_FILE_PATH
   fi
 
   local threadCS=""
@@ -278,9 +283,9 @@ initMPICHConfigureOpts() {
     --without-mpit-pvars \
     --enable-g=none"
   else
-    CFlags="CFLAGS=\"$DEBUG_FLAGS\"" \
-      CXXFlags="CXXFLAGS=\"$DEBUG_FLAGS\"" \
-      performanceKeys="--enable-fast=O0 \
+    CFlags="CFLAGS=\"$DEBUG_FLAGS\""
+    CXXFlags="CXXFLAGS=\"$DEBUG_FLAGS\""
+    performanceKeys="--enable-fast=O0 \
   --enable-timing=all \
   --enable-mutex-timing \
   --enable-g=all"
@@ -311,9 +316,9 @@ initMPICHConfigureOpts() {
 makeAndInstall() {
   SECONDS=0
   echo "$LOG_PREFIX Make and install MPICH sources"
-  make clean &>>$LOG_FILE_PATH
-  make -j 7 &>>$LOG_FILE_PATH
-  make install &>>$LOG_FILE_PATH
+  make clean >>$LOG_FILE_PATH
+  make -j 7 >>$LOG_FILE_PATH
+  make install >>$LOG_FILE_PATH
   showElapsedTime "MPICH installed"
 }
 
@@ -370,7 +375,7 @@ installation() {
   case $installationType in
   global | handoff | trylock)
     SECONDS=0
-    eval "./configure $MPICH_CONFIGURE_OPTS" &>>$LOG_FILE_PATH
+    eval "./configure $MPICH_CONFIGURE_OPTS" >>$LOG_FILE_PATH
     showElapsedTime "MPICH configured"
 
     if test "$auto" = false; then
@@ -418,10 +423,10 @@ installHwloc() {
     fi
   fi
   eval "$INSTALL install libtool"
-  ./autogen.sh &>>$LOG_FILE_PATH
-  eval "./configure --prefix=$INSTALLATION_PATH_PREFIX/hwloc &>> $LOG_FILE_PATH"
-  make &>>$LOG_FILE_PATH
-  make install &>>$LOG_FILE_PATH
+  ./autogen.sh >>$LOG_FILE_PATH
+  eval "./configure --prefix=$INSTALLATION_PATH_PREFIX/hwloc >> $LOG_FILE_PATH"
+  make >>$LOG_FILE_PATH
+  make install >>$LOG_FILE_PATH
   cd ../
   showElapsedTime "hwloc installed"
 }
