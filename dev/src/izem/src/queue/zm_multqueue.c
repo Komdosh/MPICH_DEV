@@ -40,7 +40,7 @@ int zm_multqueue_enqueue(zm_multqueue_t *q, void *data) {
         if (tid < q->threads_num) {
             queue_index = (rand() % (q->threads_num / 2));
         } else {
-            queue_index =  return (rand() % (q->threads_num / 2)) + (q->threads_num / 2);
+            queue_index = (rand() % (q->threads_num / 2)) + (q->threads_num / 2);
         }
     } while (pthread_mutex_lock(&locks[queue_index]) != 0);
     //printf("multqueue %d enqueue\n", queue_index);
