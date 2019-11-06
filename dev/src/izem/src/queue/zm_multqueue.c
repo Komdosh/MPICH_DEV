@@ -4,7 +4,7 @@
 #include "stdlib.h"
 #include <pthread.h>
 
-#define CORES 6
+#define CORES 4 
 #define QUEUES_PER_CORE 2
 
 int zm_multqueue_init(zm_multqueue_t *q) {
@@ -24,6 +24,13 @@ int zm_multqueue_init(zm_multqueue_t *q) {
     return 0;
 }
 
+uint64_t gettid() {
+    pthread_t ptid = pthread_self();
+    uint64_t threadId = 0;
+    memcpy(&threadId, &ptid, std::min(sizeof(threadId), sizeof(ptid)));
+    return threadId;
+}
+
 inline int get_random_queue_index_half(int threads_num) { return rand() % (threads_num / 2); }
 
 inline int get_random_queue_index(int threads_num) { return rand() % threads_num; }
@@ -31,10 +38,7 @@ inline int get_random_queue_index(int threads_num) { return rand() % threads_num
 inline void insert(zm_multqueue_t *q, void *data) {
     int queue_index;
 
-    pthread_id_np_t tid;
-    pthread_t self;
-    self = pthread_self();
-    pthread_getunique_np(&self, &tid);
+    uint64_t tid = gettid();
 
     pthread_mutex_t *locks = q->locks;
     do {
@@ -59,15 +63,11 @@ inline void pop(zm_multqueue_t *q, void **data) {
     int queue_index;
     pthread_mutex_t *locks = q->locks;
     int it = 0;
-    pthread_id_np_t tid;
-    pthread_t self;
-    self = pthread_self();
-    pthread_getunique_np(&self, &tid);
+    uint64_t tid = gettid();
     do {
         if (it == 0) {
             queue_index = tid * QUEUES_PER_CORE;
             ++it;
-            secondQueueIndex = getRandomQueueIndexForHalf();
         } else if (it == 1) {
             queue_index = tid * QUEUES_PER_CORE + 1;
             ++it;

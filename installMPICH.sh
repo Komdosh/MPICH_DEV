@@ -524,7 +524,7 @@ done
 
 OPTIND=1
 
-# installHwloc
+installHwloc
 
 while getopts ":gdhp:" opt; do
   case $opt in
